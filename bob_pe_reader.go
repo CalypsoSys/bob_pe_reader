@@ -1,6 +1,7 @@
 package bob_pe_reader
 
 import (
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"strings"
@@ -88,18 +89,21 @@ func printVersion(version []byte, offs int, peInfo map[string]string) int {
 	return int(pad(offs))
 }
 
-func FindPeInfo(inputFile string) map[string]string {
-	buf, _ := ioutil.ReadFile(inputFile)
+func FindPeInfo(inputFile string) (map[string]string, error) {
+	buf, err := ioutil.ReadFile(inputFile)
+	if err != nil {
+		return nil, err
+	}
 
 	//buf is a IMAGE_DOS_HEADER
 	if readWord(buf, 0) != 0x5A4D { //MZ signature
-		return nil
+		return nil, errors.New("no MZ signature")
 	}
 
 	//pe is a IMAGE_NT_HEADERS32
 	pe := readDoubleWord(buf, 0x3C)
 	if readWord(buf, int(pe)) != 0x4550 { //PE signature
-		return nil
+		return nil, errors.New("no PE signature")
 	}
 
 	//coff is a IMAGE_FILE_HEADER
@@ -108,13 +112,13 @@ func FindPeInfo(inputFile string) map[string]string {
 	numSections := readWord(buf, coff+2)
 	optHeaderSize := readWord(buf, coff+16)
 	if numSections == 0 || optHeaderSize == 0 {
-		return nil
+		return nil, errors.New("no sections or header size")
 	}
 
 	//optHeader is a IMAGE_OPTIONAL_HEADER32
 	optHeader := coff + 20
 	if readWord(buf, optHeader) != 0x10b { //Optional header magic (32 bits)
-		return nil
+		return nil, errors.New("no magic number")
 	}
 
 	//dataDir is an array of IMAGE_DATA_DIRECTORY
@@ -151,7 +155,7 @@ func FindPeInfo(inputFile string) map[string]string {
 
 			offs := int(readDoubleWord(buf, res+4))
 			if (offs & 0x80000000) == 0 { //is a dir resource?
-				return nil
+				return nil, errors.New("dir resource")
 			}
 			//verDir is another IMAGE_RESOURCE_DIRECTORY and
 			// IMAGE_RESOURCE_DIRECTORY_ENTRY array
@@ -160,12 +164,12 @@ func FindPeInfo(inputFile string) map[string]string {
 			numNamed := readWord(buf, verDir+12)
 			numId := readWord(buf, verDir+14)
 			if numNamed == 0 && numId == 0 {
-				return nil
+				return nil, errors.New("no num of named or num id")
 			}
 			res = int(verDir + 16)
 			offs = int(readDoubleWord(buf, res+4))
 			if (offs & 0x80000000) == 0 { //is a dir resource?
-				return nil
+				return nil, errors.New("dir resource 2")
 			}
 
 			//and yet another IMAGE_RESOURCE_DIRECTORY, etc.
@@ -173,12 +177,12 @@ func FindPeInfo(inputFile string) map[string]string {
 			numNamed = readWord(buf, verDir+12)
 			numId = readWord(buf, verDir+14)
 			if numNamed == 0 && numId == 0 {
-				return nil
+				return nil, errors.New("no num of named or num id 2")
 			}
 			res = verDir + 16
 			offs = int(readDoubleWord(buf, res+4))
 			if (offs & 0x80000000) != 0 { //is a dir resource?
-				return nil
+				return nil, errors.New("dir resource 3")
 			}
 			verDir = resSec + offs
 
@@ -188,9 +192,9 @@ func FindPeInfo(inputFile string) map[string]string {
 
 			rc := map[string]string{}
 			printVersion(buf[verPtr:], 0, rc)
-			return rc
+			return rc, nil
 		}
 	}
 
-	return nil
+	return nil, errors.New("not a windows exe or dll")
 }
