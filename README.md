@@ -1,5 +1,5 @@
 # bob_pe_reader
-bob_pe_reader - a golang library to read windoes PE info
+bob_pe_reader - a golang library to read windowes PE info from exe and dll
 
 Originally taken from the answer by @rodrigo, found here: http://stackoverflow.com/a/12486703/850326
 
