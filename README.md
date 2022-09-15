@@ -19,12 +19,15 @@ import (
 )
 
 func main() {
-
 	fmt.Printf("Testing Bob PE Reader\n")
 
-	infoMap := bob_pe_reader.FindPeInfo(`C:\code\bin\MyWindowsAssembly.dll`)
-	for k, v := range infoMap {
-		fmt.Printf("%s: %s\n", k, v)
+	infoMap, err := bob_pe_reader.FindPeInfo(`C:\code\bin\MyWindowsAssembly.dll`)
+	if err != nil {
+		fmt.Print(err)
+	} else {
+		for k, v := range infoMap {
+			fmt.Printf("%s: %s\n", k, v)
+		}
 	}
 }
 
