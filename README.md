@@ -18,9 +18,13 @@ import (
 )
 
 func main() {
+
 	fmt.Printf("Testing Bob PE Reader\n")
 
-    infoMap := FindPeInfo("C:\\code\\bin\\MyWindowsAssembly.dll")
-    
+	infoMap := bob_pe_reader.FindPeInfo(`C:\code\bin\MyWindowsAssembly.dll`)
+	for k, v := range infoMap {
+		fmt.Printf("%s: %s\n", k, v)
+	}
 }
+
 ```
